@@ -10,7 +10,8 @@ public class ClientMain {
 	public static void main(String[] args) {
 
 		Boolean running = true;
-		ClientSocket socket = new ClientSocket();
+		Ui ui = new TerminalUI();
+		ClientSocket socket = new ClientSocket(ui);
 		socket.connect();
 		while (!socket.authenticated) {
 			socket.auth();

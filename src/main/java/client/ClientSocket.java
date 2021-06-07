@@ -8,236 +8,205 @@ import java.net.UnknownHostException;
 
 public class ClientSocket {
 
-	private int port;
-	private String address;
-	private String clientName;
-	private Socket clientSocket;
-	public DataInputStream dIn;
-	private DataOutputStream dOut;
-	public boolean authenticated;
-	private Ui ui;
+    public DataInputStream dIn;
+    public boolean authenticated;
+    private final int port;
+    private final String address;
+    private final String clientName;
+    private Socket clientSocket;
+    private DataOutputStream dOut;
+    private final Ui ui;
 
-	ClientSocket(Ui ui) {
-		this.ui = ui;
-		this.address = ui.getAddress();
-		this.port = ui.getPort();
-		this.clientName = ui.getUsername();
-		this.clientSocket = null;
-		this.dIn = null;
-		this.dOut = null;
-		this.authenticated = false;
+    ClientSocket(Ui ui) {
+        this.ui = ui;
+        this.address = ui.getAddress();
+        this.port = ui.getPort();
+        this.clientName = ui.getUsername();
+        this.clientSocket = null;
+        this.dIn = null;
+        this.dOut = null;
+        this.authenticated = false;
 
-	}
+    }
 
-	/**
-	 * Connect to a server using a socket
-	 */
-	public void connect() {
-		try {
-			this.clientSocket = new Socket(this.address, this.port);
-			this.inOut();
-		} catch (UnknownHostException e) {
-			System.out
-					.println("Unkown host, are u sure the server is running there?\n");
-			e.printStackTrace();
-		} catch (IOException e) {
-			System.out.println("Could not connect\n");
-			e.printStackTrace();
-		}
+    /**
+     * Connect to a server using a socket
+     */
+    public void connect() {
+        try {
+            this.clientSocket = new Socket(this.address, this.port);
+            this.inOut();
+        } catch (UnknownHostException e) {
+            System.out
+                    .println("Unknown host, are u sure the server is running there?\n");
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.out.println("Could not connect\n");
+            e.printStackTrace();
+        }
 
-	}
+    }
 
 
-	/**
-	 * Get the input and output streams
-	 */
-	private void inOut() {
-		if (this.clientSocket != null) {
-			try {
-				this.dIn = new DataInputStream(
-						this.clientSocket.getInputStream());
-				this.dOut = new DataOutputStream(
-						this.clientSocket.getOutputStream());
+    /**
+     * Get the input and output streams
+     */
+    private void inOut() {
+        if (this.clientSocket != null) {
+            try {
+                this.dIn = new DataInputStream(
+                        this.clientSocket.getInputStream());
+                this.dOut = new DataOutputStream(
+                        this.clientSocket.getOutputStream());
 
-			} catch (IOException e) {
-				System.out.println("Could not setup In/Out Stream\n");
-				e.printStackTrace();
-				System.out.println("We will try again\n");
-				this.inOut();
-			}
-		} else {
-			System.out.println("Socket was null");
-			this.connect();
-		}
+            } catch (IOException e) {
+                System.out.println("Could not setup In/Out Stream\n");
+                e.printStackTrace();
+                System.out.println("We will try again\n");
+                this.inOut();
+            }
+        } else {
+            System.out.println("Socket was null");
+            this.connect();
+        }
 
-	}
+    }
 
-	/**
-	 * Authenticate at the server
-	 */
-	public void auth() {
-		byte dataByte;
+    /**
+     * Authenticate at the server
+     */
+    public void auth() {
+        byte dataByte;
 
-		try {
-			dataByte = this.dIn.readByte();
+        try {
+            dataByte = this.dIn.readByte();
 
-			switch (dataByte) {
-			case 0:// Ok
-					// TODO check if all is ok
-				this.dOut.writeByte(0);
-				this.dOut.flush();
-				dataByte = this.dIn.readByte();
-				switch (dataByte) {
-				case 5:// Server wants name
-					this.dOut.writeByte(6);// Write the send name byte
-					this.dOut.writeUTF(this.clientName);// Write the name
-					this.dOut.flush();// send the packet
-					dataByte = this.dIn.readByte();
+            switch (dataByte) {
+                case 0:// Ok
+                    // TODO check if all is ok
+                    this.dOut.writeByte(0);
+                    this.dOut.flush();
+                    dataByte = this.dIn.readByte();
+					if (dataByte == 5) {// Server wants name
+						this.dOut.writeByte(6);// Write the send name byte
+						this.dOut.writeUTF(this.clientName);// Write the name
+						this.dOut.flush();// send the packet
+						dataByte = this.dIn.readByte();
 
-					switch (dataByte) {
-					case 14:// auth done
-						this.authenticated = true;
-						break;
+						switch (dataByte) {
+							case 14:// auth done
+								this.authenticated = true;
+								break;
 
-					case 15:// auth fail
-						this.auth();
-						break;
+							case 15:// auth fail
+								this.auth();
+								break;
 
-					default:
-						break;
+							default:
+								break;
+						}
 					}
-				}
 
-				break;
-			// TODO create a cancel() function
-			case 1:// Server aborts
-				break;
+                    break;
+                // TODO create a cancel() function
+                case 1:// Server aborts
+                    break;
 
-			case 3:// Server exits
-				break;
+                case 3:// Server exits
+                    break;
 
-			default:
-				break;
-			}
+                default:
+                    break;
+            }
 
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
-	}
+    }
 
-	/**
-	 * Send a message
-	 * @param msg The message to send
-	 * @param receiver The receiver name of this message
+    /**
+     * Send a message
+     *
+     * @param msg      The message to send
+     * @param receiver The receiver name of this message
+     */
+    public void sendMsg(String msg, String receiver) {
+        byte dataByte;
+
+        try {
+            this.dOut.writeByte(10);// Show the server that a msg follows
+            this.dOut.writeByte(11);// Show the server that the msg body follows
+            this.dOut.writeUTF(msg);// Write the msg body
+            this.dOut.writeByte(12);// Show the server that the receiver follows
+            this.dOut.writeUTF(receiver);// Write the receiver
+            this.dOut.flush();// Send the packet
+
+            dataByte = this.dIn.readByte();
+            switch (dataByte) {
+                case 0:
+                    System.out.println("Msg got send");
+                    break;
+
+                case 1:// Server aborts
+                    break;
+
+                case 3:// Server exits
+                    break;
+
+                default:
+                    break;
+            }
+
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            System.out.println("Msg could not be send");
+            e.printStackTrace();
+        }
+
+    }
+
+    /**
+     * Receive a message from the server
+     *
 	 */
-	public void sendMsg(String msg, String receiver) {
-		byte dataByte;
+    public void recvMsg() throws IOException {// 7 8 9 back: 0
+        byte dataByte;
+        String sender;
+        String msg;
 
-		try {
-			this.dOut.writeByte(10);// Show the server that a msg follows
-			this.dOut.writeByte(11);// Show the server that the msg body follows
-			this.dOut.writeUTF(msg);// Write the msg body
-			this.dOut.writeByte(12);// Show the server that the receiver follows
-			this.dOut.writeUTF(receiver);// Write the receiver
-			this.dOut.flush();// Send the packet
-
-			dataByte = this.dIn.readByte();
-			switch (dataByte) {
-			case 0:
-				System.out.println("Msg got send");
-				break;
-
-			case 1:// Server aborts
-				break;
-
-			case 3:// Server exits
-				break;
-
-			default:
-				break;
-			}
-
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			System.out.println("Msg could not be send");
-			e.printStackTrace();
-		}
-
-	}
-
-	/**
-	 * Receive a message from the server
-	 * @throws IOException
-	 */
-	public void recvMsg() throws IOException {// 7 8 9 back: 0
-		byte dataByte;
-		String sender;
-		String msg;
-
-		dataByte = this.dIn.readByte();// recv msg flag
-		switch (dataByte) {
-		case 1:
-			break;
-		case 3:
-			break;
-
-		case 7:// We get a msg
+        dataByte = this.dIn.readByte();// recv msg flag
+		if (dataByte == 7) {// We get a msg
 			dataByte = this.dIn.readByte();// recv the next byte
 			switch (dataByte) {
-			case 1:
-				break;
-			case 3:
-				break;
-			case 8:
-				sender = this.dIn.readUTF();// We get the sender
-				dataByte = this.dIn.readByte();// Get next byte
-				switch (dataByte) {
-				case 1:
-					break;
-				case 3:
-					break;
-				case 9:
-					msg = this.dIn.readUTF();// get the msg
-					this.dOut.writeByte(0);// Send ok back
-					ui.displayMsg(sender, msg);// print the msg
-					break;
-				default:
-					break;
-				}
-
-				break;
-
-			case 9:
-				msg = this.dIn.readUTF();// get the msg
-				dataByte = this.dIn.readByte();// recv the next byte
-				switch (dataByte) {
-				case 1:
-					break;
-				case 3:
-					break;
 				case 8:
 					sender = this.dIn.readUTF();// We get the sender
-					this.dOut.writeByte(0);// Send ok back
-					ui.displayMsg(sender, msg);// print the msg
+					dataByte = this.dIn.readByte();// Get next byte
+					if (dataByte == 9) {
+						msg = this.dIn.readUTF();// get the msg
+						this.dOut.writeByte(0);// Send ok back
+						ui.displayMsg(sender, msg);// print the msg
+					}
+
+					break;
+
+				case 9:
+					msg = this.dIn.readUTF();// get the msg
+					dataByte = this.dIn.readByte();// recv the next byte
+					if (dataByte == 8) {
+						sender = this.dIn.readUTF();// We get the sender
+						this.dOut.writeByte(0);// Send ok back
+						ui.displayMsg(sender, msg);// print the msg
+					}
 					break;
 				default:
 					break;
 
-				}
-				break;
-			default:
-				break;
-
 			}
-
-			break;
-		default:
-			break;
 		}
 
-	}
+    }
 }
 
 // 0 Ok
