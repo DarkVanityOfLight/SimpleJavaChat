@@ -27,6 +27,9 @@ public class ClientSocket {
 
 	}
 
+	/**
+	 * Connect to a server using a socket
+	 */
 	public void connect() {
 		try {
 			this.clientSocket = new Socket(this.address, this.port);
@@ -42,6 +45,10 @@ public class ClientSocket {
 
 	}
 
+
+	/**
+	 * Get the input and output streams
+	 */
 	private void inOut() {
 		if (this.clientSocket != null) {
 			try {
@@ -63,6 +70,9 @@ public class ClientSocket {
 
 	}
 
+	/**
+	 * Authenticate at the server
+	 */
 	public void auth() {
 		byte dataByte;
 
@@ -115,15 +125,20 @@ public class ClientSocket {
 
 	}
 
-	public void sendMsg(String msg, String reciver) {
+	/**
+	 * Send a message
+	 * @param msg The message to send
+	 * @param receiver The receiver name of this message
+	 */
+	public void sendMsg(String msg, String receiver) {
 		byte dataByte;
 
 		try {
 			this.dOut.writeByte(10);// Show the server that a msg follows
 			this.dOut.writeByte(11);// Show the server that the msg body follows
 			this.dOut.writeUTF(msg);// Write the msg body
-			this.dOut.writeByte(12);// Show the server that the reciver follows
-			this.dOut.writeUTF(reciver);// Write the reciver
+			this.dOut.writeByte(12);// Show the server that the receiver follows
+			this.dOut.writeUTF(receiver);// Write the receiver
 			this.dOut.flush();// Send the packet
 
 			dataByte = this.dIn.readByte();
@@ -150,7 +165,10 @@ public class ClientSocket {
 
 	}
 
-	// Recv a msg from the database
+	/**
+	 * Receive a message from the server
+	 * @throws IOException
+	 */
 	public void recvMsg() throws IOException {// 7 8 9 back: 0
 		byte dataByte;
 		String sender;
