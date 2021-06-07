@@ -15,11 +15,13 @@ public class ClientSocket {
 	public DataInputStream dIn;
 	private DataOutputStream dOut;
 	public boolean authenticated;
+	private Ui ui;
 
-	ClientSocket() {
-		this.address = Ui.getAddress();
-		this.port = Ui.getPort();
-		this.clientName = Ui.getUsername();
+	ClientSocket(Ui ui) {
+		this.ui = ui;
+		this.address = ui.getAddress();
+		this.port = ui.getPort();
+		this.clientName = ui.getUsername();
 		this.clientSocket = null;
 		this.dIn = null;
 		this.dOut = null;
@@ -199,7 +201,7 @@ public class ClientSocket {
 				case 9:
 					msg = this.dIn.readUTF();// get the msg
 					this.dOut.writeByte(0);// Send ok back
-					Ui.printMsg(sender, msg);// print the msg
+					ui.displayMsg(sender, msg);// print the msg
 					break;
 				default:
 					break;
@@ -218,7 +220,7 @@ public class ClientSocket {
 				case 8:
 					sender = this.dIn.readUTF();// We get the sender
 					this.dOut.writeByte(0);// Send ok back
-					Ui.printMsg(sender, msg);// print the msg
+					ui.displayMsg(sender, msg);// print the msg
 					break;
 				default:
 					break;
