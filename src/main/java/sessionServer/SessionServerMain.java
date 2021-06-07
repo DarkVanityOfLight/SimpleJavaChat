@@ -13,9 +13,7 @@ public class SessionServerMain {
 	static public Map<String, String>RecieverMsg = new HashMap<String, String>();//Reciever as key and the msg as value
 	static public Map<String, String>MsgSender = new HashMap<String, String>();//Msg as key and sender as value
 
-	/**
-	 * @param args
-	 */
+
 	public static void main(String[] args) {
 		// TODO get args
 		// TODO maybe multi socket?

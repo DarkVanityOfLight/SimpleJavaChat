@@ -9,7 +9,7 @@ import java.util.Map.Entry;
 @SuppressWarnings("unused")
 public class SessionHandler extends Thread {
 
-	private Socket client;
+	private final Socket client;
 	private DataInputStream dIn;
 	private DataOutputStream dOut;
 	private String clientName;
@@ -31,7 +31,7 @@ public class SessionHandler extends Thread {
 
 	// ___________________________________________________SetUp___________________________________________________________
 	// Set the in and output streams
-	// So that the msg can be recieved and sent
+	// So that the msg can be received and sent
 	private void inOut() throws IOException {
 
 		this.dIn = new DataInputStream(this.client.getInputStream());
@@ -44,52 +44,32 @@ public class SessionHandler extends Thread {
 		String dataString;
 
 		// Get and set the name
-		// TODO check if server side is ok
+		// TODO check if server side is really ok
 		this.dOut.writeByte(0);// All is ok so send 0, look at bottom
 		this.dOut.flush();// Send the byte
 		dataByte = this.dIn.readByte();// Read the answer
-		switch (dataByte) {
-		case 0:// Client sends Ok
+		// If we got anything unexpected exit
+		if (dataByte == 0) {// Client sends Ok answer with a get name byte
 			this.dOut.writeByte(5);// Get the client name
-			this.dOut.flush();// Send the controll byte
+			this.dOut.flush();// Send the byte
 
 			dataByte = this.dIn.readByte();
-			switch (dataByte) {
-			case 2:// Client wants abort
-				cancel();
-				break;
-
-			case 4:// Client wants to exit
-				cancel();
-				break;
-				
-			case 6:// Next the name follows in UTF
-				dataString = this.dIn.readUTF();// dataString is now the user
-												// name
-				this.clientName = dataString;// Set the session clientName on
-												// the one we got
+			if (dataByte == 6) {// Next the name follows in UTF
+				dataString = this.dIn.readUTF();// dataString is now the user name
+				this.clientName = dataString;// Set the session clientName on the one we got
 
 				this.authenticated = true;// user is now authenticated
 				this.dOut.writeByte(14);
 				this.dOut.flush();
 				// TODO authenticate the user
-				break;
-			default:
+			} else {
 				cancel();
-				break;
 			}
-			break;
-		case 2:// Client says abort
-				// TODO maybe get some logs
+			// Client says abort
+			// TODO maybe get some logs
+		// Client wants to exit
+		} else {
 			cancel();
-			break;
-		case 4:// Client wants to exit
-			cancel();
-			break;
-		default:// If we got anyting unexpected exit
-			cancel();
-			break;
-
 		}
 
 	}
@@ -107,81 +87,59 @@ public class SessionHandler extends Thread {
 		try {
 			dataByte = this.dIn.readByte();
 
-			switch (dataByte) {
-			case 2:// Client aborts
-				cancel();
-				break;
-			case 4:// Client exits
-				cancel();
-				break;
-			case 10:// We get an msg
+			// If we get smth unkown exit
+			if (dataByte == 10) {// We get an msg
 				dataByte = this.dIn.readByte();// Get the next byte
 				switch (dataByte) {
-				case 11:// Msg follows
-					msg = this.dIn.readUTF();// read the msg
-					dataByte = this.dIn.readByte();// Get the next byte
-					switch (dataByte) {
-					case 2:// Client aborts
+					case 11:// Msg follows
+						msg = this.dIn.readUTF();// read the msg
+						dataByte = this.dIn.readByte();// Get the next byte
+						switch (dataByte) {
+							case 12:// We get the reciver
+								reciver = this.dIn.readUTF(); // read the reciver
+								SessionServerMain.MsgSender.put(msg, this.clientName);
+								SessionServerMain.RecieverMsg.put(reciver, msg);
+								this.dOut.writeByte(0);// Msg was recived, send Ok back
+								// to the client
+								System.out.println("Msg recieved");
+								break;
+
+							case 13:// Msg abort
+								break;
+
+							default:// If we get smth unkown exit
+								cancel();
+								break;
+						}
+						break;
+
+					case 12:// The receiver follows
+						reciver = this.dIn.readUTF();// Read the reciver
+						dataByte = this.dIn.readByte();// Read the next byte
+						switch (dataByte) {
+							case 11:// We get the msg
+								msg = this.dIn.readUTF();// Read the msg
+								SessionServerMain.MsgSender.put(msg, this.clientName);
+								SessionServerMain.RecieverMsg.put(reciver, msg);
+								this.dOut.writeByte(0);// Msg was received, send Ok back
+								System.out.println("Msg received");
+							case 13:// Abort msg sending
+								break;
+							default:// If we get smth unknown exit
+								cancel();
+								break;
+						}
+						break;
+
+					case 13:// abort msg sending
+						break;
+
+					default:// If we get smth unknown exit
 						cancel();
 						break;
-
-					case 4:// Client exits
-						cancel();
-						break;
-
-					case 12:// We get the reciver
-						reciver = this.dIn.readUTF(); // read the reciver
-						SessionServerMain.MsgSender.put(msg, this.clientName);
-						SessionServerMain.RecieverMsg.put(reciver, msg);
-						this.dOut.writeByte(0);// Msg was recived, send Ok back
-						// to the client
-						System.out.println("Msg recieved");
-						break;
-
-					case 13:// Msg abort
-						break;
-
-					default:// If we get smth unkown exit
-						cancel();
-						break;
-					}
-					break;
-
-				case 12:// The reciver follows
-					reciver = this.dIn.readUTF();// Read the reciver
-					dataByte = this.dIn.readByte();// Read the next byte
-					switch (dataByte) {
-					case 2:// Client aborts
-						cancel();
-						break;
-					case 4:// Client exits
-						cancel();
-						break;
-					case 11:// We get the msg
-						msg = this.dIn.readUTF();// Read the msg
-						SessionServerMain.MsgSender.put(msg, this.clientName);
-						SessionServerMain.RecieverMsg.put(reciver, msg);
-						this.dOut.writeByte(0);// Msg was recived, send Ok back
-						System.out.println("Msg recived");
-					case 13:// Abort msg sending
-						break;
-					default:// If we get smth unkown exit
-						cancel();
-						break;
-					}
-					break;
-
-				case 13:// abort msg sending
-					break;
-
-				default:// If we get smth unkown exit
-					cancel();
-					break;
 				}
-				break;
-			default:// If we get smth unkown exit
+			} else {
 				cancel();
-				break;
 			}
 
 		} catch (IOException e) {
@@ -210,22 +168,14 @@ public class SessionHandler extends Thread {
 			cancel();
 		}
 
-		switch (dataByte) {// check if msg is delivered
-		case 0:// All is ok the msg was recieved
+		// check if msg is delivered
+		// If we get smth unknown exit
+		if (dataByte == 0) {// All is ok the msg was received
 			SessionServerMain.MsgSender.remove(msg);//We delete the msg from our database
 			SessionServerMain.RecieverMsg.remove(this.clientName);
-			break;
-		case 2:// Some error
-				// TODO get some logs
+			// Some error
+		} else {
 			cancel();
-			break;
-		case 4:// Client exits
-			cancel();
-			break;
-
-		default:// If we get smth unkown exit
-			cancel();
-			break;
 		}
 		
 		
@@ -321,7 +271,7 @@ public class SessionHandler extends Thread {
 // --> 9 The msg follows
 // 10 Client sends text msg
 // --> 11 the msg follows
-// --> 12 the reciver follows
+// --> 12 the receiver follows
 // 13 Abort msg sending
 // 14 authenticated
 // 15 auth fail

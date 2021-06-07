@@ -10,8 +10,7 @@ public class SessionSocket {
 	public ServerSocket serverSocket;
 
 	SessionSocket() {
-		this.port = SessionServerMain.port;// assign the port var to the current
-											// port in main
+		this.port = SessionServerMain.port;// assign the port var to the current port in main
 		this.serverSocket = null;
 
 	}
@@ -30,7 +29,7 @@ public class SessionSocket {
 			System.out.println(e);
 			serverSocket = null;
 		}
-		return this.serverSocket;
+		return null;
 
 	}
 
