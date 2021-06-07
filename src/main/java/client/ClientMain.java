@@ -2,7 +2,7 @@ package client;
 
 import java.io.IOException;
 
-public class clientMain {
+public class ClientMain {
 
 	/**
 	 * @param args
